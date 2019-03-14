@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Stape Sample</string>
+    <string name="stape_key">VjYOKmLkMMGoEhwlXtiV9mflidCHTK1y79aO9zLNk</string>
+    <string name="action_identify_now">Identify Music Now</string>
+    <string name="response_is_recording">recording ...</string>
+    <string name="response_is_identifying">identifying ...</string>
+    <string name="response_no_result">no result =(</string>
+</resources>

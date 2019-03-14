@@ -1,0 +1,143 @@
+#####
+##
+##  Basic Steps to integrate Stape Music with your project
+##
+#####
+
+
+. Download stape-sdk-release.aar
+
+. Copy stape-sdk-release.aar to <project>/<app>/libs
+
+. Add the following to the strings.xml
+
+    <string translatable="false" name="stape_key">[YOUR_KEY]</string>
+
+. Add the following to the app level build.gradle
+
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.3.21'
+    implementation 'com.google.android.gms:play-services-location:16.0.0'
+    implementation 'com.google.android.gms:play-services-places:16.0.0'
+    implementation 'com.google.android.gms:play-services-ads:17.1.3'
+    implementation 'android.arch.lifecycle:extensions:1.1.1'
+    implementation files("libs/stape-sdk-release.aar")
+
+. Create MainApplication class
+
+public class MainApplication extends Application {
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        StapeConfig config = StapeConfigBuilder.make().build(this);
+        Stape.init(this, config);
+    }
+}
+
+. Register MainApplication on the AndroidManifest.xml
+
+    <application
+        android:name=".MainApplication"
+        ...
+    </application>
+
+. Ask for permissions on any Activity (prior to request for any music identification)
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        ...
+        StapePermissions.init(this);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NotNull String permissions[], @NotNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        ...
+        StapePermissions.onRequestPermissionsResult(this, requestCode, permissions, grantResults);
+    }
+
+
+
+#####
+##
+##  Request SMR and handle response
+##
+#####
+
+
+. Call identifyNow
+
+    Stape.identifyNow(context);
+
+. Create BroadcastReceiver
+
+    public class MyBroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (context == null || intent == null || intent.getAction() == null) {
+                return;
+            }
+            if(intent.getAction().equals(StapeBroadcast.BROADCAST_ACTION_RESULT)){
+                finishedProcessingListener(context, intent);
+            }
+        }
+
+        private void finishedProcessingListener(@NotNull Context context, @NotNull Intent intent){
+            String reason = intent.getStringExtra(StapeBroadcast.BROADCAST_EXTRA_RESULT_CODE);
+            identifyNowBtn.setEnabled(true);
+
+
+            // FINGERPRINT GENERATED
+            if(reason.equals(StapeBroadcast.FINGERPRINT_CREATED)) {
+                responseTxt.setText(R.string.response_is_identifying);
+            }
+
+            // SUCCESS!!! The music was identified
+            else if(reason.equals(StapeBroadcast.SUCCESS)) {
+                String result = intent.getStringExtra(StapeBroadcast.BROADCAST_EXTRA_RESULT_VALUE);
+
+                String time = DateFormat.getDateTimeInstance().format(Calendar.getInstance().getTime());
+                StringBuilder response = new StringBuilder(time + "\r\n");
+                try {
+                    JSONObject recognition = new JSONObject(result);
+                    String title = recognition.getString("title");
+                    response.append(title).append("\r\n");
+                    JSONArray artists = recognition.getJSONArray("artists");
+                    for(int i = 0; i < artists.length(); i++){
+                        String artist = artists.getJSONObject(i).getString("name");
+                        response.append(artist).append(";");
+                    }
+                    response.append("\r\n");
+                } catch (JSONException ignore) { }
+
+                responseTxt.setText(response.toString());
+            }
+
+            // UNSUCCESS. The audio didn't match any song
+            else if(reason.equals(StapeBroadcast.UNSUCCESS)){
+                responseTxt.setText(R.string.response_no_result);
+            }
+
+            // OTHER SIGNALS
+            else{
+                responseTxt.setText("");
+            }
+        }
+    }
+
+. Initialize StapeBroadcastReceiver on MainApplication
+
+    @Override
+    public void onCreate() {
+        ...
+        StapeBroadcastReceiver.registerReceivers(this);
+        ...
+    }
+
+. Register BroadcastReceiver on AndroidManifest.xml
+
+    broadcastReceiver = new MyBroadcastReceiver();
+    registerReceiver(broadcastReceiver, new IntentFilter(StapeBroadcast.BROADCAST_ACTION_RESULT));
