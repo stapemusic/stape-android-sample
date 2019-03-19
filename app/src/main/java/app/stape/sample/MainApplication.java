@@ -12,7 +12,11 @@ public class MainApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        StapeConfig config = StapeConfigBuilder.make().isDebug(true).build(this);
+        StapeConfig config = StapeConfigBuilder
+                .make()
+                .isDebug(true)
+                .isWifiOnly(false)
+                .build(this);
         Stape.init(this, config);
     }
 }
