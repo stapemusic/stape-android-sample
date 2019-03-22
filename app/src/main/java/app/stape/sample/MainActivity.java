@@ -54,9 +54,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void identifyNow(View view){
-        Stape.identifyNow(this);
-        responseTxt.setText(R.string.response_is_recording);
-        identifyNowBtn.setEnabled(false);
+        if(view.isEnabled()) {
+            Stape.identifyNow(this);
+            responseTxt.setText(R.string.response_is_recording);
+            identifyNowBtn.setEnabled(false);
+        }
     }
 
     public class MyBroadcastReceiver extends BroadcastReceiver {
